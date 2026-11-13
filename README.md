@@ -1,21 +1,21 @@
-# evo 
+# evo
 
-***Python package for the evaluation of odometry and SLAM***
+***用于评估里程计与 SLAM 的 Python 软件包***
 
 | Linux / macOS / Windows / ROS / ROS2 |
 | :---: |
 | [![CI](https://github.com/MichaelGrupp/evo/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/MichaelGrupp/evo/actions/workflows/ci.yml) |
 
-This package provides executables and a small library for handling, evaluating and comparing the trajectory output of odometry and SLAM algorithms.
+本软件包提供命令行工具和一个小型库，用于处理、评估和比较里程计及 SLAM 算法输出的轨迹。
 
-Supported trajectory formats:
+支持的轨迹格式：
 
-* 'TUM' trajectory files
-* 'KITTI' pose files
-* 'EuRoC MAV' (.csv groundtruth and TUM trajectory file)
-* ROS and ROS2 bagfile with `geometry_msgs/PoseStamped`, `geometry_msgs/TransformStamped`, `geometry_msgs/PoseWithCovarianceStamped`, `geometry_msgs/PointStamped` or `nav_msgs/Odometry` topics or [TF messages](https://github.com/MichaelGrupp/evo/wiki/Formats#bag---ros-bagfile)
+* TUM 轨迹文件
+* KITTI 位姿文件
+* EuRoC MAV（.csv 真值文件和 TUM 轨迹文件）
+* 包含 `geometry_msgs/PoseStamped`、`geometry_msgs/TransformStamped`、`geometry_msgs/PoseWithCovarianceStamped`、`geometry_msgs/PointStamped` 或 `nav_msgs/Odometry` 话题，或包含 [TF 消息](https://github.com/MichaelGrupp/evo/wiki/Formats#bag---ros-bagfile)的 ROS 和 ROS2 bag 文件
 
-See [here](https://github.com/MichaelGrupp/evo/wiki/Formats) for more infos about the formats.
+有关格式的更多信息，请参阅[这里](https://github.com/MichaelGrupp/evo/wiki/Formats)。
 
 <a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" target="_blank">
   <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" alt="evo" height="175" border="5" />
@@ -32,81 +32,90 @@ See [here](https://github.com/MichaelGrupp/evo/wiki/Formats) for more infos abou
 
 ---
 
-## Why?
+## 为什么选择 evo？
 
-evo has several advantages over other public benchmarking tools:
+与其他公开的基准评测工具相比，evo 有以下优势：
 
-* common tools for different formats
-* algorithmic options for association, alignment, scale adjustment for monocular SLAM etc.
-* flexible options for output, [plotting](https://github.com/MichaelGrupp/evo/wiki/Plotting), [visualization](https://github.com/MichaelGrupp/evo/wiki/Rerun-integration) or export (e.g. LaTeX plots or Excel tables)
-* a powerful, configurable CLI that can cover many use cases
-* modular `core` and `tools` libraries for custom extensions
-* faster than other established Python-based tools ([see here](https://github.com/MichaelGrupp/evo/blob/master/doc/performance.md))
+* 使用通用工具处理不同格式
+* 提供轨迹关联、对齐以及单目 SLAM 尺度调整等算法选项
+* 提供灵活的输出、[绘图](https://github.com/MichaelGrupp/evo/wiki/Plotting)、[可视化](https://github.com/MichaelGrupp/evo/wiki/Rerun-integration)和导出选项（例如 LaTeX 图表或 Excel 表格）
+* 功能强大且可配置的命令行界面，涵盖多种使用场景
+* 模块化的 `core` 和 `tools` 库，便于自定义扩展
+* 比其他成熟的 Python 工具更快（[详见这里](https://github.com/MichaelGrupp/evo/blob/master/doc/performance.md)）
 
-**What it's not:** a 1-to-1 re-implementation of a particular evaluation protocol tailored to a specific dataset. 
+**它不是什么：**针对特定数据集的某个评估协议的完全复现。
 
 ---
 
-## Installation / Upgrade
+## 安装与升级
 
-Installation is easy-peasy if you're familiar with this: https://xkcd.com/1987/#
+如果你熟悉[这些](https://xkcd.com/1987/#)，安装就很简单。
 
-The latest version of evo supports **Python 3.11+**.
+最新版 evo 支持 **Python 3.11 及以上版本**。
 
-Please use `pip` only in a proper environment (e.g. `uv`/`uvx`, `pipx`, `venv`, Pixi or a classic [virtual environment](https://github.com/MichaelGrupp/evo/blob/master/doc/install_in_virtualenv.md)).
+请仅在合适的环境中使用 `pip`（例如 `uv`/`uvx`、`pipx`、`venv`、Pixi 或传统的[虚拟环境](https://github.com/MichaelGrupp/evo/blob/master/doc/install_in_virtualenv.md)）。
 > ⚠️ ☠️☠️☠️ ⚠️
 >
-> Whatever you do, don't use: `pip install --user` / anything with `--break-system-packages` / or worst: `sudo pip install`
+> 无论如何，请勿使用 `pip install --user`、任何带 `--break-system-packages` 的命令，或者最糟糕的 `sudo pip install`。
 
-### From PyPi
-If you just want to use the executables of the latest release version, the easiest way is to run:
+### 从 PyPI 安装
+如果只想使用最新发布版本的命令行工具，最简单的方法是运行：
 ```bash
 pip install evo
 ```
-This will download the package and its dependencies from [PyPI](https://pypi.org/project/evo/) and install or upgrade them. If you want, you can subscribe to new releases via https://libraries.io/pypi/evo.
+这会从 [PyPI](https://pypi.org/project/evo/) 下载软件包及其依赖，并进行安装或升级。你也可以通过 https://libraries.io/pypi/evo 订阅新版本。
 
-To upgrade to a newer version: `pip install --upgrade evo`
+升级到新版本：`pip install --upgrade evo`
 
-### From Source
-Run this in the repository's base folder:
+### 从源码安装
+
+先安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，然后在当前项目根目录（包含 `pyproject.toml` 的目录）下运行：
+
 ```bash
-pip install --editable .
+uv venv --python 3.11 .venv
+source .venv/bin/activate
+uv pip install --editable .
+evo_ape --help
 ```
+
+上述命令会在项目根目录创建 `.venv` 虚拟环境，并将当前项目及其依赖安装到该环境中。`--editable` 表示以可编辑模式安装，修改源码后无需重新安装；`evo_ape --help` 用于验证命令行工具是否可用。
+
+Windows PowerShell 的激活命令为 `.venv\Scripts\Activate.ps1`。每次打开新终端后，需重新激活环境才能直接使用 `evo_ape` 等命令；使用完毕后运行 `deactivate` 退出环境。
 
 ### Pixi
 
-[Pixi](https://prefix.dev) is an easy-to-use alternative if you want to have an isolated development environment. Run `pixi add evo` if you have an existing environment, or clone this repository and run `pixi shell` to open a dev shell.
+如果需要隔离的开发环境，[Pixi](https://prefix.dev) 是一个易用的选择。已有环境中可运行 `pixi add evo`；也可以克隆本仓库，然后运行 `pixi shell` 进入开发环境。
 
-### Tab completion
+### Tab 补全
 
-Tab completion is supported via the [argcomplete](https://github.com/kislyuk/argcomplete/) package. Run `activate-global-python-argcomplete` after the installation to use it.
+通过 [argcomplete](https://github.com/kislyuk/argcomplete/) 软件包支持 Tab 补全。安装后运行 `activate-global-python-argcomplete` 即可使用。
 
-### Dependencies
+### 依赖项
 
-**Python packages**
+**Python 软件包**
 
-evo has some required dependencies that are ***automatically resolved*** during installation with pip.
-See the `pyproject.toml` file for all details.
+evo 的必需依赖会在使用 pip 安装时***自动解析并安装***。
+详细信息请参阅 `pyproject.toml` 文件。
 
-**PyQt6 (optional)**
+**PyQt6（可选）**
 
-[PyQt6](https://pypi.org/project/PyQt6/) will give you the enhanced GUI for plot figures from the "*qtagg*" matplotlib backend (otherwise: "*TkAgg*"). If PyQt6 is already installed when installing this package, it will be used as a default (see `evo_config show`). To change the plot backend afterwards, run `evo_config set plot_backend qtagg`.
+[PyQt6](https://pypi.org/project/PyQt6/) 可通过 matplotlib 的 “*qtagg*” 后端为绘图提供增强的图形界面（否则使用 “*TkAgg*”）。如果安装本软件包时已安装 PyQt6，它将作为默认后端（参见 `evo_config show`）。若要在之后更改绘图后端，请运行 `evo_config set plot_backend qtagg`。
 
-If you run into issues with installing tkinter, trying PyQt6 is a good idea. 
+如果安装 tkinter 时遇到问题，可以尝试 PyQt6。
 
-**ROS (optional)**
+**ROS（可选）**
 
-Some ROS-related features require a ROS installation, see [here](http://www.ros.org/). We are testing this package with ROS Lyrical.
+部分 ROS 相关功能需要安装 ROS，详见[这里](http://www.ros.org/)。本软件包使用 ROS Lyrical 进行测试。
 
-> Reading ROS bag files works also without a ROS installation thanks to the great [rosbags](https://pypi.org/project/rosbags/) package that is installed together with evo. This allows you also to read ROS 1 & 2 bags even if you don't have one of those ROS distros installed. (except for reading `/tf` topics, because there we need the buffer implementation from ROS)
+> 得益于随 evo 一起安装的 [rosbags](https://pypi.org/project/rosbags/) 软件包，即使没有安装相应的 ROS 发行版，也可以读取 ROS 1 和 ROS 2 的 bag 文件。（读取 `/tf` 话题除外，因为它需要 ROS 提供的缓冲区实现。）
 
-**contextily (optional)**
+**contextily（可选）**
 
-[contextily](https://contextily.readthedocs.io/en/latest/index.html) is required for [adding map tiles](https://github.com/MichaelGrupp/evo/wiki/Plotting#geographic-map-tiles) to plots of geo-referenced data.
+在地理参考数据的图中[添加地图瓦片](https://github.com/MichaelGrupp/evo/wiki/Plotting#geographic-map-tiles)需要安装 [contextily](https://contextily.readthedocs.io/en/latest/index.html)。
 
-**Rerun (optional)**
+**Rerun（可选）**
 
-You can send data also to the [rerun](https://rerun.io/) viewer. Just `pip install rerun-sdk` and add `--rerun` to your command. See the related [Wiki page](https://github.com/MichaelGrupp/evo/wiki/Rerun-integration) for more details.
+也可以将数据发送到 [Rerun](https://rerun.io/) 查看器。只需运行 `pip install rerun-sdk`，并在命令中添加 `--rerun`。更多详情请参阅相关的 [Wiki 页面](https://github.com/MichaelGrupp/evo/wiki/Rerun-integration)。
 
 <a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" target="_blank">
   <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" alt="evo" width="350" border="5" />
@@ -117,36 +126,36 @@ You can send data also to the [rerun](https://rerun.io/) viewer. Just `pip insta
 
 ---
 
-## Command Line Interface
+## 命令行界面
 
-After installation with pip, the following executables can be called globally from your command-line:
+激活安装 evo 的虚拟环境后，可以在命令行中调用以下工具：
 
-**Metrics:**
+**评估指标：**
 
-* `evo_ape` - absolute pose error
-* `evo_rpe` - relative pose error
+* `evo_ape` - 绝对位姿误差
+* `evo_rpe` - 相对位姿误差
 
-**Tools:**
+**工具：**
 
-* `evo_traj` - tool for analyzing, plotting or exporting one or more trajectories
-* `evo_res` - tool for comparing one or multiple result files from `evo_ape` or `evo_rpe`
-* `evo_config` - tool for global settings and config file manipulation
+* `evo_traj` - 分析、绘制或导出一条或多条轨迹
+* `evo_res` - 比较 `evo_ape` 或 `evo_rpe` 生成的一个或多个结果文件
+* `evo_config` - 管理全局设置和配置文件
 
-Call the commands with `--help` to see the options, e.g. `evo_ape --help`. Tab-completion of command line parameters is available on UNIX-like systems.
+在命令后添加 `--help` 可查看选项，例如 `evo_ape --help`。类 UNIX 系统支持命令行参数的 Tab 补全。
 
-**More documentation**
-Check out the [Wiki on GitHub](https://github.com/MichaelGrupp/evo/wiki).
+**更多文档**
+请参阅 [GitHub Wiki](https://github.com/MichaelGrupp/evo/wiki)。
 
 ---
 
-## Example Workflow
+## 使用示例
 
-There are some example trajectories in the source folder in `test/data`.
+源码目录的 `test/data` 中包含一些示例轨迹。
 
 
-### 1.) Plot multiple trajectories
+### 1. 绘制多条轨迹
 
-  Here, we plot two KITTI pose files and the ground truth using `evo_traj`:
+  这里使用 `evo_traj` 绘制两个 KITTI 位姿文件和真值轨迹：
   ```
   cd test/data
   evo_traj kitti KITTI_00_ORB.txt KITTI_00_SPTAM.txt --ref=KITTI_00_gt.txt -p --plot_mode=xz
@@ -159,11 +168,11 @@ There are some example trajectories in the source folder in `test/data`.
     <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_demo_xyz.png" alt="evo" height="200" border="5" />
   </a>
 
-### 2.) Run a metric on trajectories
+### 2. 计算轨迹评估指标
 
-  For example, here we calculate the absolute pose error for two trajectories from ORB-SLAM and S-PTAM using `evo_ape` (`KITTI_00_gt.txt` is the reference (ground truth)) and plot and save the individual results to .zip files for `evo_res`:
+  下面使用 `evo_ape` 计算 ORB-SLAM 和 S-PTAM 两条轨迹的绝对位姿误差（`KITTI_00_gt.txt` 是参考真值），绘制结果，并分别保存为供 `evo_res` 使用的 .zip 文件：
 
-  *First trajectory (ORB Stereo):*
+  *第一条轨迹（ORB Stereo）：*
 
   ```
   mkdir results
@@ -177,8 +186,8 @@ There are some example trajectories in the source folder in `test/data`.
     <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" alt="evo" height="200" border="5" />
   </a>
 
-  *Second trajectory (S-PTAM):*
-  
+  *第二条轨迹（S-PTAM）：*
+
   ```
   evo_ape kitti KITTI_00_gt.txt KITTI_00_SPTAM.txt -va --plot --plot_mode xz --save_results results/SPTAM.zip
   ```
@@ -191,14 +200,14 @@ There are some example trajectories in the source folder in `test/data`.
   </a>
 
 
-### 3.) Process multiple results from a metric
+### 3. 处理多个评估结果
 
-  `evo_res` can be used to compare multiple result files from the metrics, i.e.:
-  * print infos and statistics (default)
-  * plot the results
-  * save the statistics in a table
+  `evo_res` 可用于比较多个评估结果文件，例如：
+  * 输出信息和统计数据（默认）
+  * 绘制结果
+  * 将统计数据保存为表格
 
-  Here, we use the results from above to generate a plot and a table:
+  这里使用上述结果生成图表和表格：
   ```
   evo_res results/*.zip -p --save_table results/table.csv
   ```
@@ -221,42 +230,42 @@ There are some example trajectories in the source folder in `test/data`.
 
 ---
 
-## IPython / Jupyter Resources
+## IPython / Jupyter 资源
 
-For an interactive source code documentation, open the [Jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) `metrics_tutorial.ipynb` in the `notebooks` folder of the repository. More infos on Jupyter notebooks: see [here](https://github.com/MichaelGrupp/evo/blob/master/doc/jupyter_notebook.md)
+要查看交互式源码文档，请打开仓库 `notebooks` 目录中的 [Jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) 文件 `metrics_tutorial.ipynb`。有关 Jupyter notebook 的更多信息，请参阅[这里](https://github.com/MichaelGrupp/evo/blob/master/doc/jupyter_notebook.md)。
 
-If you have IPython installed, you can launch an IPython shell with a custom evo profile with the command `evo_ipython`.
-
----
-
-## Contributing Utilities
-
-A few "inoffical" scripts for special use-cases are collected  in the `contrib/` directory of the repository. They are inofficial in the sense that they don't ship with the package distribution and thus aren't regularly tested in continuous integration.
+如果已安装 IPython，可以使用 `evo_ipython` 命令启动加载了 evo 自定义配置的 IPython shell。
 
 ---
 
-## Trouble
-*"😱, this piece of 💩 software doesn't do what I want!!1!1!!"*
+## 社区贡献的实用工具
 
-**First aid:**
-* append `-h`/ `--help` to your command
-* check the [Wiki](https://github.com/MichaelGrupp/evo/wiki)
-* check the [previous issues](https://github.com/MichaelGrupp/evo/issues?q=is%3Aissue+is%3Aclosed)
-* open a [new issue](https://github.com/MichaelGrupp/evo/issues)
+仓库的 `contrib/` 目录收录了一些用于特定场景的“非官方”脚本。它们不随软件包发布，因此也不会在持续集成中定期测试。
 
 ---
 
-## Contributing
+## 遇到问题
+*“😱，这个 💩 软件怎么不能按我的要求工作！！！”*
 
-Patches are welcome, preferably as pull requests.
+**排查步骤：**
+* 在命令后添加 `-h` / `--help`
+* 查阅 [Wiki](https://github.com/MichaelGrupp/evo/wiki)
+* 查看[已关闭的议题](https://github.com/MichaelGrupp/evo/issues?q=is%3Aissue+is%3Aclosed)
+* 创建[新议题](https://github.com/MichaelGrupp/evo/issues)
 
-## License
+---
 
-[GPL-3.0 or later](https://www.gnu.org/licenses/gpl-3.0.html)
+## 参与贡献
 
-If you use this package for your research, a footnote with the link to this repository is appreciated: `github.com/MichaelGrupp/evo`.
+欢迎贡献补丁，建议通过 pull request 提交。
 
-...or, for citation with BibTeX:
+## 许可证
+
+[GPL-3.0 或更高版本](https://www.gnu.org/licenses/gpl-3.0.html)
+
+如果你在研究中使用本软件包，欢迎在脚注中附上本仓库链接：`github.com/MichaelGrupp/evo`。
+
+或者，使用以下 BibTeX 条目引用：
 ```
 @misc{grupp2017evo,
   title={evo: Python package for the evaluation of odometry and SLAM.},
