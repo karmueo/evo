@@ -348,12 +348,10 @@ def send_to_rerun(
                     ),
                     rrb.Grid(
                         contents=[
-                            rrb.BarChartView(
+                            rrb.Spatial2DView(
                                 name=f"Statistics {key}",
                                 origin=f"/{evo_app_name}/statistics/{key}",
-                                plot_legend=rrb.PlotLegend(
-                                    None, visible=False
-                                ),
+                                contents=["$origin"],
                             )
                             for key in keys
                         ],

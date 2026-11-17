@@ -314,7 +314,10 @@ def send_rerun_blueprint(
                             rrb.Spatial3DView(
                                 name="Trajectories",
                                 time_ranges=time_range,
-                                contents=["$origin/**"],
+                                contents=[
+                                    "$origin/**",
+                                    f"- /{evo_app_name}/error/statistics/**",
+                                ],
                             ),
                             rrb.Grid(
                                 name="Plots",
@@ -324,12 +327,12 @@ def send_rerun_blueprint(
                                         time_ranges=time_range,
                                         plot_legend=rrb.Corner2D.RightTop,
                                     ),
-                                    rrb.BarChartView(
+                                    rrb.Spatial2DView(
                                         name="Statistics",
-                                        origin=f"/{evo_app_name}/error",
-                                        plot_legend=rrb.PlotLegend(
-                                            None, visible=False
+                                        origin=(
+                                            f"/{evo_app_name}/error/statistics"
                                         ),
+                                        contents=["$origin"],
                                     ),
                                 ],
                                 column_shares=[1, 1],
@@ -464,4 +467,5 @@ def send_result_to_rerun(
     revo.send_statistics_bar_chart(
         entity_path=f"{evo_app_name}/error/statistics",
         stats=result.stats,
+        label=result.info["label"],
     )

@@ -12,7 +12,9 @@ from rerun.experimental import ViewerClient
 
 import numpy as np
 import matplotlib.cm
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.colors import Normalize, rgb2hex
+from matplotlib.figure import Figure
 
 from evo.core.trajectory import PosePath3D, PoseTrajectory3D
 from evo.tools.plot import color_cycle, PlotMode
@@ -291,32 +293,60 @@ def send_trajectory(entity_path: str, traj: PosePath3D, color: Color) -> None:
     )
 
 
-def send_statistics_bar_chart(
-    entity_path: str,
-    stats: dict,
-) -> None:
+def _statistics_figure(stats: dict, label: str) -> Figure | None:
     """
-    Sends a static bar chart of result statistics (mean, std, etc.) to Rerun.
-    Each statistic is sent as a separate single-bar BarChart entity so that
-    the entity path name serves as the label in the BarChartView.
-    Colors follow the evo color cycle (seaborn palette from SETTINGS).
-    Only statistics listed in SETTINGS.plot_statistics are included.
-    """
-    colors = color_cycle()
-    included = [s for s in SETTINGS.plot_statistics if s in stats]
+    Render configured statistics with categorical labels on the x axis.
 
-    for i, name in enumerate(included):
-        value = stats[name]
-        color = colors[i % len(colors)]
-        rr.log(
-            f"{entity_path}/{name}",
-            rr.BarChart(
-                values=np.array([value]),
-                abscissa=np.array([i]),
-                color=color,
-            ),
-            static=True,
-        )
+    Rerun's native BarChart only supports numeric abscissas. Use an Agg
+    figure so metric names remain visible without requiring a GUI backend.
+    """
+    included = [s for s in SETTINGS.plot_statistics if s in stats]
+    if not included:
+        return None
+
+    colors = color_cycle()
+    labels = [
+        name.upper() if name in ("rmse", "sse") else name.capitalize()
+        for name in included
+    ]
+    figure = Figure(
+        figsize=(8, 3.5), dpi=160, layout="constrained", facecolor="#171717"
+    )
+    ax = figure.subplots()
+    ax.set_facecolor("#171717")
+    bars = ax.bar(
+        labels,
+        [stats[name] for name in included],
+        color=[colors[i % len(colors)] for i in range(len(included))],
+        width=0.65,
+        zorder=3,
+    )
+    ax.bar_label(bars, fmt="%.4g", padding=4, color="#eeeeee")
+    ax.set_ylabel(label, color="#eeeeee")
+    ax.tick_params(colors="#eeeeee")
+    ax.grid(False, axis="x")
+    ax.grid(True, axis="y", color="#444444", alpha=0.5, zorder=0)
+    ax.margins(y=0.2)
+    ax.set_ylim(bottom=0)
+    for spine in ax.spines.values():
+        spine.set_color("#666666")
+    # This embedded chart must not depend on an external TeX installation.
+    for text in figure.findobj(matplotlib.text.Text):
+        text.set_usetex(False)
+    return figure
+
+
+def send_statistics_bar_chart(
+    entity_path: str, stats: dict, label: str = "Error"
+) -> None:
+    """Send a static statistics image with metric names and values."""
+    figure = _statistics_figure(stats, label)
+    if figure is None:
+        return
+    canvas = FigureCanvasAgg(figure)
+    canvas.draw()
+    pixels = np.asarray(canvas.buffer_rgba())[:, :, :3].copy()
+    rr.log(entity_path, rr.Image(pixels), static=True)
 
 
 def send_view_coordinates(plot_mode: PlotMode):
