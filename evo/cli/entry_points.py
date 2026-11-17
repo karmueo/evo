@@ -46,6 +46,10 @@ def handle_entry_point(app_name: str) -> None:
     launch(main_module, parser)
 
 
+def static() -> None:
+    handle_entry_point("static")
+
+
 def ape() -> None:
     handle_entry_point("ape")
 
@@ -62,19 +66,39 @@ def traj() -> None:
     handle_entry_point("traj")
 
 
-def merge_config(args: argparse.Namespace) -> argparse.Namespace:
+def merge_config(
+    args: argparse.Namespace, config_format: str = "json"
+) -> argparse.Namespace:
     """
-    merge .json config file with the command line args (if --config was defined)
+    Merge a config file with command line args (if --config was defined).
     :param args: parsed argparse NameSpace object
+    :param config_format: configuration format (json or yaml)
     :return: merged argparse NameSpace object
     """
     import json
 
     if args.config:
-        with open(args.config) as config:
+        with open(args.config, encoding="utf-8") as config:
             merged_config_dict = vars(args).copy()
             # merge both parameter dicts
-            config_dict = json.loads(config.read())
+            if config_format == "yaml":
+                import yaml
+
+                try:
+                    config_dict = yaml.safe_load(config)
+                except yaml.YAMLError as exc:
+                    raise EvoException(
+                        f"Invalid YAML config {args.config}: {exc}"
+                    ) from exc
+                if not isinstance(config_dict, dict) or not all(
+                    isinstance(key, str) for key in config_dict
+                ):
+                    raise EvoException(
+                        f"YAML config {args.config} must contain a mapping "
+                        "with string keys"
+                    )
+            else:
+                config_dict = json.load(config)
             merged_config_dict.update(config_dict)
             # override args the hacky way
             args = argparse.Namespace(**merged_config_dict)
@@ -91,7 +115,13 @@ def merge_config(args: argparse.Namespace) -> argparse.Namespace:
 def launch(main_module, parser: argparse.ArgumentParser) -> None:
     args = parser.parse_args()
     if hasattr(args, "config"):
-        args = merge_config(args)
+        try:
+            args = merge_config(
+                args,
+                config_format=getattr(main_module, "CONFIG_FORMAT", "json"),
+            )
+        except KNOWN_EXCEPTIONS as exc:
+            parser.error(str(exc))
     try:
         main_module.run(args)
     except KeyboardInterrupt:

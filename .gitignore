@@ -118,3 +118,7 @@ venv.bak/
 
 .claude/*
 results
+test/data/EGO
+evo_traj.pdf
+
+output

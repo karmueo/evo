@@ -1,0 +1,7 @@
+unit: mm
+reference_mode: origin
+window: 0.5
+speed_threshold: 0.008
+angular_speed_threshold: 1.0
+min_duration: 2.0
+max_gap: 0.5

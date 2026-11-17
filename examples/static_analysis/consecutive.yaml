@@ -1,0 +1,8 @@
+unit: mm
+# 将第 i 个静止段与前一个静止段（第 i - 1 段）的平均位姿作差，计算每一步的相对位移与欧氏距离
+reference_mode: consecutive
+window: 0.5
+speed_threshold: 0.008
+angular_speed_threshold: 1.0
+min_duration: 2.0
+max_gap: 0.5

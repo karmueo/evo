@@ -41,6 +41,7 @@ Supported trajectory formats:
 The following executables are available:
 
 Metrics:
+   evo_static - static stops and known displacement evaluation
    evo_ape - absolute pose error
    evo_rpe - relative pose error
 
