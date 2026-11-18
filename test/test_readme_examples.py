@@ -19,13 +19,13 @@ def test_readme_monocular_ape_corrects_scale(tmp_path: Path):
         command
         for command in commands
         if command[:2] == ["evo_ape", "tum"]
-        and "freiburg1_xyz-ORB_kf_mono.txt" in command
+        and "test/data/freiburg1_xyz-ORB_kf_mono.txt" in command
     ]
     assert len(monocular_commands) == 1
     args = ape_parser.parser().parse_args(monocular_commands[0][1:])
-    # Resolve the example's data paths without changing the process directory.
-    args.ref_file = str(root / "test" / "data" / args.ref_file)
-    args.est_file = str(root / "test" / "data" / args.est_file)
+    # 示例路径以仓库根目录为基准，测试保留当前工作目录。
+    args.ref_file = str(root / args.ref_file)
+    args.est_file = str(root / args.est_file)
     args.save_results = str(tmp_path / "ORB.zip")
     ape.run(args)
 

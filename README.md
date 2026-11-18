@@ -19,31 +19,9 @@ evo 是用于处理、评估和比较里程计及 SLAM 轨迹的 Python 软件�
 
 <a id="为什么选择-evo"></a>
 
-## 安装与升级
-
-不要使用 `pip install --user`、`--break-system-packages` 或 `sudo pip install`。先准备虚拟环境、uv、pipx 或 Pixi 等合适环境。
+## 安装
 
 以下安装命令统一使用 [uv](https://docs.astral.sh/uv/getting-started/installation/)，请先创建并激活虚拟环境（见[从源码安装](#从源码安装)中的环境准备命令）。`uv venv` 默认不安装 `pip`；使用 `uv pip install` 可直接向虚拟环境安装软件包，避免调用系统 `pip`。
-
-### 从 PyPI 安装
-
-```bash
-# 安装已发布的 evo 及其依赖
-uv pip install \
-  evo
-```
-
-| 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
-| --- | --- | --- | --- |
-| `evo` | 指定软件包 | 输入值 | 必填；包名或其他 uv pip 支持的安装目标 |
-| `--upgrade` | 升级软件包 | 行为控制项 | 默认不启用；可用于下面的升级命令 |
-
-```bash
-# 升级已安装的 evo
-uv pip install \
-  --upgrade \
-  evo
-```
 
 ### 从源码安装
 
@@ -63,24 +41,12 @@ uv venv \
 
 ```bash
 # 激活虚拟环境
-source \
-  .venv/bin/activate
+source .venv/bin/activate
 ```
 
 | 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
 | --- | --- | --- | --- |
 | 文件路径 | 指定当前 shell 执行的激活脚本 | 输入文件 | 必填；此处为 `.venv/bin/activate` |
-
-Windows PowerShell 中改用：
-
-```powershell
-# 激活虚拟环境
-.venv\Scripts\Activate.ps1
-```
-
-| 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
-| --- | --- | --- | --- |
-| 无 | 使用该环境的激活脚本 | 输入文件 | 不适用 |
 
 ```bash
 # 以可编辑模式安装当前项目
@@ -159,28 +125,24 @@ uv pip install \
 
 ## 使用示例
 
-在源码仓库中使用 [test/data](test/data) 的 Freiburg TUM 示例。以下步骤依次绘制轨迹、计算两组 APE 并比较结果；`results` 不应已存在。保留的轨迹、APE 和结果比较图片来自原版 KITTI 示例，仅展示绘图形式，不代表下列 TUM 命令的实际输出。
+以下命令均从仓库根目录执行。前三节使用 [test/data](test/data) 的 Freiburg TUM 数据，依次绘制轨迹、计算两组 APE 并比较结果。首次运行时 `results` 目录应尚未创建。配图使用原版 KITTI 示例，展示各类图表的形式。
 
 ### 1. 绘制多条轨迹
 
 ```bash
-# 进入示例数据目录
-cd \
-  test/data
-```
+# 激活虚拟环境
+source .venv/bin/activate
 
-| 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
-| --- | --- | --- | --- |
-| 目录 | 切换当前 shell 工作目录 | 输入目录 | 未指定时依赖 shell 的 HOME；此处为 `test/data` |
+mkdir -p output
 
-```bash
 # 绘制两条 TUM 轨迹及参考轨迹
 evo_traj tum \
-  freiburg1_xyz-ORB_kf_mono.txt \
-  freiburg1_xyz-rgbdslam.txt \
-  --ref=freiburg1_xyz-groundtruth.txt \
-  --save_plot=evo_traj.pdf \
+  test/data/freiburg1_xyz-ORB_kf_mono.txt \
+  test/data/freiburg1_xyz-rgbdslam.txt \
+  --ref=test/data/freiburg1_xyz-groundtruth.txt \
+  --save_plot=output/evo_traj.pdf \
   --plot_mode=xyz \
+  --plot_relative_time \
   -a
 ```
 
@@ -235,8 +197,8 @@ mkdir \
 ```bash
 # 对齐并校正单目尺度，计算和保存 ORB 轨迹的绝对位姿误差
 evo_ape tum \
-  freiburg1_xyz-groundtruth.txt \
-  freiburg1_xyz-ORB_kf_mono.txt \
+  test/data/freiburg1_xyz-groundtruth.txt \
+  test/data/freiburg1_xyz-ORB_kf_mono.txt \
   -vas \
   --plot_mode xyz \
   --save_results results/ORB.zip
@@ -277,8 +239,8 @@ evo_ape tum \
 ```bash
 # 计算并保存 RGB-D SLAM 轨迹的绝对位姿误差
 evo_ape tum \
-  freiburg1_xyz-groundtruth.txt \
-  freiburg1_xyz-rgbdslam.txt \
+  test/data/freiburg1_xyz-groundtruth.txt \
+  test/data/freiburg1_xyz-rgbdslam.txt \
   -va \
   --plot \
   --plot_mode xz \
@@ -294,11 +256,14 @@ evo_ape tum \
 
 ### 3. 处理多个评估结果
 
+两组结果使用相同的平移 APE 指标，ORB 额外进行了尺度校正。比较时用 `--ignore_title` 跳过由对齐方式产生的标题差异。
+
 ```bash
 # 比较结果并保存统计表
 evo_res \
   results/*.zip \
   -p \
+  --ignore_title \
   --save_table results/table.csv
 ```
 
@@ -331,64 +296,60 @@ evo_res \
 
 ### 4. 轨迹静态分析
 
-`evo_static` 自动检测一条或多条 TUM 轨迹中的静止段，评估静止段位姿抖动，并自动计算静止位置之间的欧氏距离、$x, y, z$ 坐标距离及首尾位姿距离。本节适用于当前仓库，要求 Python ≥ 3.11，已激活项目虚拟环境，以下静态分析命令均在仓库根目录执行（若刚运行完前三个示例，请先返回仓库根目录；[环境与入口配置](pyproject.toml)）。输入为 `timestamp tx ty tz qx qy qz qw`，位置固定为米、时间为秒；至少两帧，数值有限，四元数归一化，时间戳严格递增。距离计算使用轨迹的世界坐标系，不做对齐或尺度校正。示例使用仓库合成轨迹，依次停在 0、100 mm、0 三个位置。
+`evo_static` 每次分析一条 TUM 轨迹，支持自动检测或手动指定静止段。它评估段内位姿抖动，计算各静止段平均位姿之间的欧氏距离、$x, y, z$ 坐标差及可选的首尾位姿距离。
 
-#### 注册命令
+#### 手动指定静止段
 
-首次安装或新增命令入口后执行；以下两种方式任选一种。
+用相对时间绘制待分析的单条轨迹，从时间轴读取各静止段的起点和终点。
 
 ```bash
-# 通过当前 Python 环境以可编辑模式安装项目
-python -m pip install \
-  --editable .
+evo_traj tum examples/static_analysis/trajectory.tum --plot --plot_relative_time
 ```
 
-| 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
-| --- | --- | --- | --- |
-| `-m pip` | 使用当前 Python 的 pip 模块 | 行为控制项（非输入输出） | 此调用必需；需环境已提供 pip |
-| `--editable .` | 指定可编辑安装的项目目录 | 输入目录；安装到当前 Python 环境 | 此调用显式指定仓库根目录 `.`；省略该选项则不启用可编辑安装 |
+在传给 `--config` 的 YAML 中填写一个或多个顶层区间。以下配置选取 OpenVINS 示例轨迹两次停靠中的稳定时段。
 
-已使用 uv 管理虚拟环境时，可改用：
-
-```bash
-# 通过 uv 以可编辑模式安装项目
-uv pip install \
-  --editable .
+```yaml
+static_0:
+  enable: true
+  start_time: 15.0
+  end_time: 20.0
+static_1:
+  enable: true
+  start_time: 50.0
+  end_time: 60.0
 ```
 
-| 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
-| --- | --- | --- | --- |
-| `--editable .` | 指定可编辑安装的项目目录 | 输入目录；安装到 uv 选择的虚拟环境 | 此调用显式指定仓库根目录 `.`；省略该选项则不启用可编辑安装 |
+`start_time` 和 `end_time` 以轨迹首帧为零点，单位为秒。两端都计入区间，且须满足 `0 ≤ start_time < end_time ≤ 轨迹时长`，至少覆盖一帧。省略 `enable` 时默认启用。只要有启用的手动段，命令就按时间顺序用这些段的平均位姿计算距离。全部关闭或省略所有手动段时，命令使用自动检测。[origin.yaml](examples/static_analysis/origin.yaml) 启用手动段并以首段为基准，[consecutive.yaml](examples/static_analysis/consecutive.yaml) 使用自动检测并以前一段为基准。
 
-#### 自动识别静止段与计算距离
-
-支持一次性传入一条或多条 TUM 轨迹，自动识别静止时间段（默认最短持续时间 `2.0` 秒），并计算静止位置之间的欧氏距离与 $x, y, z$ 坐标距离。仅在确认实验首尾处于相同真实位置和朝向时使用 `--closure`。
+#### 计算距离
 
 ```bash
-# 自动检测静止段，计算各静止位置之间的距离、首尾距离并保存报告
+mkdir -p output
+
+# 用手动静止段计算段间距离并保存报告
 evo_static tum \
   examples/static_analysis/trajectory.tum \
   --config examples/static_analysis/origin.yaml \
-  --closure \
-  --save_json static_report.json \
-  --save_csv static_report.csv \
-  --save_plot static_report.pdf
+  --save_plot output/static_report.pdf \
+  --plot
 ```
 
 YAML 中已设置的键覆盖同名命令行设置，未设置的键保留命令行值。参数依据：[参数定义](evo/cli/static_parser.py)、[配置校验](evo/core/static.py)、[配置合并](evo/cli/entry_points.py)。表中的 `/` 后为对应 YAML 键。
 
 | 支持的参数／配置项 | 参数作用 | 输入/输出 | 默认值/支持的值 |
 | --- | --- | --- | --- |
-| `trajectory`（位置参数，可传多个） | 一条或多条 TUM 轨迹路径 | 输入文件 | 必填，至少一个文件；格式要求见概述 |
+| `trajectory`（位置参数） | 单条 TUM 轨迹路径 | 输入文件 | 必填 |
 | `-c`、`--config` | 指定 YAML 配置 | 输入文件 | 未设置；顶层须为字符串键的映射 |
 | `--reference_mode` / `reference_mode` | 指定距离基准点 | 输入值 | 默认 `origin`，首次静止点；支持 `consecutive`，上一次静止点 |
 | `--unit` / `unit` | 指定位置和距离结果的单位 | 输入值 | 默认 `mm`；支持 `m`；不改变 TUM 输入单位 |
-| `--closure` / `closure` | 启用首末静止段代表位姿的距离评估 | 行为控制项（非输入输出） | 默认 `false`；启用时至少需要检测到两段静止区间 |
+| `--closure` / `closure` | 计算首末静止段平均位姿之间的距离 | 行为控制项 | 默认 `false`，启用时至少需要两段静止区间 |
 | `--window` / `window` | 自动检测窗口时长 | 输入值 | 默认 `0.5` 秒；有限正数 |
 | `--speed_threshold` / `speed_threshold` | 平移窗口运动率上限 | 输入值 | 默认 `0.008` m/s；有限非负数，不随 `unit` 改变 |
 | `--angular_speed_threshold` / `angular_speed_threshold` | 旋转窗口运动率上限 | 输入值 | 默认 `1.0` 度/秒；有限非负数 |
 | `--min_duration` / `min_duration` | 自动区间最短持续时间 | 输入值 | 默认 `2.0` 秒；有限正数 |
 | `--max_gap` / `max_gap` | 自动区间内相邻采样最大间隔，超出则分开检测 | 输入值 | 默认 `0.5` 秒；有限正数 |
+| `static_0`、`static_1` 等 | 手动指定静止段 | YAML 配置项 | 可选，每段包含开关及相对时间 |
+| `--labels` / `labels` | 为图表指定轨迹标签 | 输入值 | 可选，命令行接受一个标签，YAML 使用只含一个标签的列表 |
 | `--plot` / `plot` | 交互显示图表 | 行为控制项（非输入输出） | 默认 `false`；需可用的图形显示环境 |
 | `--save_json` / `save_json` | 指定 JSON 报告路径 | 输出文件 | 未设置，不保存 |
 | `--save_csv` / `save_csv` | 指定 CSV 表格路径 | 输出文件 | 未设置，不保存 |
@@ -400,32 +361,11 @@ YAML 中已设置的键覆盖同名命令行设置，未设置的键保留命令
 | `--logfile` / `logfile` | 指定本地日志路径 | 输出文件 | 未设置，不额外写入本地日志；全局日志由 evo 设置控制 |
 | `-h`、`--help` | 显示帮助并退出 | 行为控制项（非输入输出） | 默认不启用；主命令与 `tum` 子命令均支持 |
 
-输出字段见[报告实现](evo/tools/static_report.py)：JSON 包含配置、数据源、静止段、段间距离（`delta_xyz`、`abs_delta_xyz`、`euclidean_distance`、`rotation_angle_deg`）、可选首尾距离和汇总（多轨迹输入时顶层包含 `trajectories` 列表）；CSV 每段一行（`type=stop`，带 `source` 列），首尾评估追加 `type=closure` 行，`stop_index` 为不包含的结束索引。位置与距离单位见 `unit`，姿态为度，时间为秒。图表包含区间、段内残差和段间距离页；不输出 `evo_res` ZIP。日志与图表设置见[日志配置](evo/tools/log.py)、[图表导出](evo/tools/plot.py)。
+JSON 包含配置、数据源、静止段、段间距离、可选首尾距离和汇总。CSV 每段一行（`type=stop`），首尾评估追加 `type=closure` 行。`stop_index` 是切片结束索引。位置与距离单位由 `unit` 指定，姿态为度，时间为秒。
 
-[origin.yaml](examples/static_analysis/origin.yaml) 内容如下；各配置项见上表。
+使用 `--plot` 或 `--save_plot` 时，报告包含三维估计轨迹、静止区间、段内残差和段间距离。三维图用彩色标记显示静止段的 XYZ 平均位置，最后一个静止点用 X，其余用圆点。坐标完全重合时，按标记从大到小叠画。分图导出时，三维图的文件名以 `_trajectory_3d` 结尾，例如 `static_report_trajectory_3d.png`。详见[报告实现](evo/tools/static_report.py)。
 
-```yaml
-unit: mm
-reference_mode: origin
-window: 0.5
-speed_threshold: 0.008
-angular_speed_threshold: 1.0
-min_duration: 2.0
-max_gap: 0.5
-```
 
-也可完全通过命令行指定，或一次性传入多条轨迹进行批量分析：
-
-```bash
-# 按相邻静止点模式分析多条轨迹的静止段与段间距离
-evo_static tum \
-  examples/static_analysis/trajectory.tum \
-  examples/static_analysis/trajectory.tum \
-  --reference_mode consecutive \
-  --closure
-```
-
-参数见本节首表。使用配置文件时，可将第一条评估命令中的 `origin.yaml` 换成 [consecutive.yaml](examples/static_analysis/consecutive.yaml)。
 
 #### Python 调用
 
@@ -449,6 +389,7 @@ print(report.to_dict())
 | `StaticAnalysisConfig(...)` 的配置字段 | 设置距离基准、单位、首尾评估和检测参数 | 输入值 | 均可省略；字段名、默认值及范围见 CLI 首表中 `reference_mode` 至 `max_gap` 的对应 YAML 键；开关使用 Python 布尔值 |
 | `analyze_static(traj, config=None)` 的 `traj` | 提供带时间戳的轨迹 | 输入值 | 必填，无默认值；`PoseTrajectory3D`，满足概述中的数据要求 |
 | `analyze_static(...)` 的 `config` | 提供分析配置 | 输入值；返回 `StaticAnalysisResult` | 默认 `None`，使用 `StaticAnalysisConfig()` |
+| `analyze_static(...)` 的 `manual_intervals` | 按名称传入相对时间区间 | 关键字参数，如 `{"static_0": (0.0, 2.0)}` | 默认 `None`，使用自动检测 |
 | 无（`report.to_dict()`） | 无需配置 | 输出字典 | 不适用；包含配置、数据源、静止段、段间距离、可选首尾距离和汇总 |
 | `print(...)` 的位置参数 | 提供要显示的报告字典 | 输入值；输出到标准输出 | 示例显式传入 `report.to_dict()`，不写报告文件 |
 
