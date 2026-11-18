@@ -406,13 +406,20 @@ def add_start_end_markers(
     ax: Axes,
     plot_mode: PlotMode,
     traj: trajectory.PosePath3D,
-    start_symbol: str = "o",
+    start_symbol: str = "^",
     start_color="black",
-    end_symbol: str = "x",
+    end_symbol: str = "s",
     end_color="black",
     alpha: float = 1.0,
     traj_name: str | None = None,
 ):
+    """在指定投影轴上标注轨迹首尾，默认使用三角形和方块。
+
+    ax 和 plot_mode 决定绘图轴和坐标投影，traj 提供端点坐标。
+    start_symbol、end_symbol 和对应的颜色参数控制标记外观，
+    alpha 控制透明度，traj_name 用于生成可选的图例标签。
+    空轨迹直接返回。函数只更新绘图轴，不返回数据。
+    """
     if traj.num_poses == 0:
         return
     start = traj.positions_xyz[0]

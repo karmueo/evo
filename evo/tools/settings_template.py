@@ -175,9 +175,9 @@ DEFAULT_SETTINGS_DICT_DOC = {
         "Show / save each figure separately instead of a collection."
     ),
     "plot_start_end_markers": (
-        False,
+        True,
         "Mark the start and end of a trajectory with a symbol.\n"
-        "Start is marked with a circle, end with a cross."
+        "Start is marked with a triangle, end with a square."
     ),
     "plot_texsystem": (
         "pdflatex",
