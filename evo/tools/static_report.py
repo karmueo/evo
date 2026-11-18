@@ -1,18 +1,23 @@
-"""Static analysis text, table and figure reports (GPL v3 or later)."""
+"""生成静态轨迹分析的文本、表格和图表（GPL v3 或更高版本）。"""
 
+from collections import Counter
 from collections.abc import Sequence
 import csv
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from evo.core.static import StaticAnalysisResult, _angles
 from evo.core.trajectory import PoseTrajectory3D
 from evo.core.transformations import quaternion_matrix
+from evo.core.units import METER_SCALE_FACTORS, Unit
 from evo.tools import user
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 
 def _normalize_results(
@@ -214,6 +219,53 @@ def _trajectory_labels(
     return derived
 
 
+def _plot_trajectory_3d(
+    traj: PoseTrajectory3D, result: StaticAnalysisResult, label: str
+) -> "Figure":
+    """用轨迹和静止段统计生成同一世界坐标系下的三维图。"""
+    from matplotlib import pyplot as plt
+    from seaborn import color_palette
+
+    from evo.tools import plot
+    from evo.tools.settings import SETTINGS
+
+    unit = Unit(result.config.unit)
+    mode = plot.PlotMode.xyz
+    fig = plt.figure(
+        figsize=tuple(SETTINGS.plot_figsize), layout="constrained"
+    )
+    ax = plot.prepare_axis(fig, mode, length_unit=unit)
+    plot.traj(ax, mode, traj, color="gray", label="估计轨迹")
+
+    # 报告坐标随输出单位缩放，绘图轴和轨迹数据均以米为基准。
+    positions = [tuple(segment["position"]) for segment in result.segments]
+    counts = Counter(positions)
+    remaining = counts.copy()
+    colors = color_palette("husl", n_colors=len(positions))
+    for index, (segment, position, color) in enumerate(
+        zip(result.segments, positions, colors)
+    ):
+        # 重合的点按从大到小的顺序叠画，保持各点的坐标和颜色。
+        size = 7 + 9 * (remaining[position] - 1) / max(counts[position] - 1, 1)
+        remaining[position] -= 1
+        x, y, z = (value * METER_SCALE_FACTORS[unit] for value in position)
+        ax.plot(
+            [x],
+            [y],
+            [z],
+            linestyle="none",
+            marker="X" if index == len(positions) - 1 else "o",
+            markersize=size,
+            color=color,
+            zorder=3,
+            label=f"停靠点 {segment['index']}",
+        )
+    if SETTINGS.plot_show_legend:
+        ax.legend(frameon=True)
+    fig.suptitle(f"{label} - 三维估计轨迹" if label else "三维估计轨迹")
+    return fig
+
+
 def _plot_single(
     collection: Any,
     traj: PoseTrajectory3D,
@@ -224,6 +276,9 @@ def _plot_single(
     from matplotlib import pyplot as plt
 
     _configure_chinese_font()
+    collection.add_figure(
+        f"{prefix}trajectory_3d", _plot_trajectory_3d(traj, result, label)
+    )
     unit = result.config.unit
     scale = 1000.0 if unit == "mm" else 1.0
     times = traj.timestamps - traj.timestamps[0]
@@ -275,68 +330,35 @@ def _plot_single(
         distances.append(result.closure)
         tick_labels.append("闭合误差")
     if distances:
-        fig, axes = plt.subplots(2, 1, sharex=True, layout="constrained")
+        fig, (distance_ax, rotation_ax) = plt.subplots(
+            2, 1, sharex=True, layout="constrained"
+        )
+        # 距离值已按报告单位换算，横坐标与停靠点对标签一一对应。
         x = np.arange(len(distances))
         decimals = 3 if unit == "m" else 2
-        series: list[tuple[list[float], Any]] = []
-        for i, axis_name in enumerate("XYZ"):
-            vals = [float(d["abs_delta_xyz"][i]) for d in distances]
-            (line,) = axes[0].plot(
-                x,
-                vals,
-                marker="o",
-                label=f"|d{axis_name}|",
-            )
-            series.append((vals, line.get_color()))
         euc_vals = [float(d["euclidean_distance"]) for d in distances]
-        (euc_line,) = axes[0].plot(
-            x,
-            euc_vals,
-            marker="o",
-            color="gold",
-            label="欧氏距离",
+        distance_ax.plot(
+            x, euc_vals, marker="o", color="gold", label="欧氏距离"
         )
-        series.append((euc_vals, euc_line.get_color()))
-
-        all_vals = [v for vals, _ in series for v in vals]
-        y_min = min(all_vals)
-        y_span = max(all_vals) - y_min or 1.0
-        for x_idx in range(len(distances)):
-            items = sorted(
-                ((vals[x_idx], color) for vals, color in series),
-                key=lambda item: item[0],
+        for x_idx, distance in enumerate(euc_vals):
+            distance_ax.annotate(
+                f"{distance:.{decimals}f}",
+                xy=(x_idx, distance),
+                xytext=(0, 6),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
             )
-            approx_pts = [((v - y_min) / y_span) * 140.0 for v, _ in items]
-            placed = list(approx_pts)
-            for k in range(1, len(placed)):
-                if placed[k] - placed[k - 1] < 11.0:
-                    placed[k] = placed[k - 1] + 11.0
-            for (val, color), orig, adj in zip(items, approx_pts, placed):
-                axes[0].annotate(
-                    f"{val:.{decimals}f}",
-                    xy=(x_idx, val),
-                    xytext=(6, adj - orig),
-                    textcoords="offset points",
-                    ha="left",
-                    va="center",
-                    fontsize=8,
-                    color=color,
-                )
+        distance_ax.margins(y=0.22)
+        distance_ax.set_xlim(-0.35, len(distances) - 0.65)
+        distance_ax.set_ylabel(f"欧氏距离 ({unit})")
 
-        axes[0].margins(y=0.18)
-        axes[0].set_xlim(-0.35, len(distances) - 0.35)
-        axes[0].set_ylabel(f"距离 ({unit})")
-        axes[0].legend(
-            ncol=4,
-            loc="lower center",
-            bbox_to_anchor=(0.5, 1.02),
-            frameon=True,
-        )
-
+        # 相对旋转角使用度，序列与上图共用停靠点对。
         rot_vals = [float(d["rotation_angle_deg"]) for d in distances]
-        axes[1].plot(x, rot_vals, marker="o")
+        rotation_ax.plot(x, rot_vals, marker="o")
         for x_idx, angle in enumerate(rot_vals):
-            axes[1].annotate(
+            rotation_ax.annotate(
                 f"{angle:.2f}°",
                 xy=(x_idx, angle),
                 xytext=(0, 6),
@@ -345,10 +367,10 @@ def _plot_single(
                 va="bottom",
                 fontsize=8,
             )
-        axes[1].margins(y=0.22)
-        axes[1].set_ylabel("旋转角 (deg)")
-        axes[1].set_xticks(x, tick_labels)
-        axes[1].set_xlabel("停靠点对")
+        rotation_ax.margins(y=0.22)
+        rotation_ax.set_ylabel("旋转角 (deg)")
+        rotation_ax.set_xticks(x, tick_labels)
+        rotation_ax.set_xlabel("停靠点对")
         title_distances = (
             f"{label} - 停靠点间距离与旋转" if label else "停靠点间距离与旋转"
         )

@@ -1,4 +1,4 @@
-"""Regression tests for static evaluation and its CLI."""
+"""验证静止段分析、命令行配置与报表导出。"""
 
 import csv
 import json
@@ -200,18 +200,24 @@ def test_invalid_config(kwargs):
         analyze_static(stops([[0, 0, 0]]), Config(**kwargs))
 
 
-def test_cli_single_and_multi_trajectory_exports_and_plots(
-    tmp_path: Path, monkeypatch
+@pytest.mark.parametrize("paths", [[], ["a.tum", "b.tum"]])
+def test_cli_requires_exactly_one_trajectory(paths):
+    """命令行拒绝零条或多条轨迹。"""
+    with pytest.raises(SystemExit) as exc:
+        static_parser.parser().parse_args(["tum", *paths])
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize("extension", ["pdf", "png"])
+def test_cli_single_trajectory_exports_and_plots(
+    tmp_path: Path, monkeypatch, extension
 ):
+    """从 YAML 读取手动静止段并导出单轨迹报告。"""
     monkeypatch.setitem(SETTINGS, "plot_backend", "Agg")
     monkeypatch.setitem(SETTINGS, "plot_split", False)
-    traj1 = tmp_path / "traj1.txt"
-    traj2 = tmp_path / "traj2.txt"
+    trajectory = tmp_path / "trajectory.tum"
     file_interface.write_tum_trajectory_file(
-        traj1, stops([[0, 0, 0], [0.1, 0, 0], [0, 0, 0]])
-    )
-    file_interface.write_tum_trajectory_file(
-        traj2, stops([[0, 0, 0], [0, 0.2, 0]])
+        trajectory, stops([[0, 0, 0], [0.1, 0, 0], [0, 0, 0]], epoch=1000)
     )
     config = tmp_path / "experiment.yaml"
     config.write_text(
@@ -219,6 +225,10 @@ def test_cli_single_and_multi_trajectory_exports_and_plots(
             {
                 "unit": "mm",
                 "reference_mode": "consecutive",
+                "static_0": {"enable": True, "start_time": 6, "end_time": 6.5},
+                "static_1": {"start_time": 0, "end_time": 0.5},
+                "static_2": {"enable": False, "start_time": "ignored"},
+                "static_4": {"start_time": 3, "end_time": 3.5},
             }
         ),
         encoding="utf-8",
@@ -226,8 +236,9 @@ def test_cli_single_and_multi_trajectory_exports_and_plots(
     args = static_parser.parser().parse_args(
         [
             "tum",
-            str(traj1),
-            str(traj2),
+            str(trajectory),
+            "--labels",
+            "测试轨迹",
             "--config",
             str(config),
             "--unit",
@@ -239,33 +250,29 @@ def test_cli_single_and_multi_trajectory_exports_and_plots(
             "--save_csv",
             str(tmp_path / "report.csv"),
             "--save_plot",
-            str(tmp_path / "report.pdf"),
+            str(tmp_path / f"report.{extension}"),
         ]
     )
     static.run(entry_points.merge_config(args, static.CONFIG_FORMAT))
     report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
     assert report["config"]["unit"] == "mm"
-    assert len(report["trajectories"]) == 2
-    first = report["trajectories"][0]
-    second = report["trajectories"][1]
-    assert first["closure"]["euclidean_distance"] == pytest.approx(0)
-    assert first["summary"]["euclidean_distance_mean"] == pytest.approx(100)
-    assert second["distances"][0]["delta_xyz"] == pytest.approx([0, 200, 0])
-    assert second["distances"][0]["abs_delta_xyz"] == pytest.approx(
-        [0, 200, 0]
-    )
-    assert second["distances"][0]["euclidean_distance"] == pytest.approx(200)
+    assert [s["start_relative"] for s in report["segments"]] == [0, 3, 6]
+    assert [s["sample_count"] for s in report["segments"]] == [2, 2, 2]
+    assert report["closure"]["euclidean_distance"] == pytest.approx(0)
+    assert report["summary"]["euclidean_distance_mean"] == pytest.approx(100)
     with (tmp_path / "report.csv").open(
         newline="", encoding="utf-8"
     ) as source:
         rows = list(csv.DictReader(source))
-    assert len(rows) == 7
-    assert rows[0]["source"] == str(traj1)
+    assert len(rows) == 4
+    assert rows[0]["source"] == str(trajectory)
     assert rows[3]["type"] == "closure"
-    assert rows[4]["source"] == str(traj2)
     assert rows[0]["euclidean_distance"] == ""
     assert float(rows[1]["euclidean_distance"]) == pytest.approx(100)
-    assert (tmp_path / "report.pdf").stat().st_size > 1000
+    plot_file = (
+        "report.pdf" if extension == "pdf" else "report_trajectory_3d.png"
+    )
+    assert (tmp_path / plot_file).stat().st_size > 1000
 
 
 def test_identical_nonidentity_rotation_and_half_turn():
@@ -282,31 +289,114 @@ def test_identical_nonidentity_rotation_and_half_turn():
 
 
 @pytest.mark.parametrize(
-    "mode,second_delta,second_euclidean",
+    "mode,expected_intervals",
     [
-        ("origin", [0, 0, 0], 0),
-        ("consecutive", [-100, 0, 0], 100),
+        ("origin", [(15, 20), (50, 60)]),
+        ("consecutive", [(6.783, 22.617), (38.9, 60.333)]),
     ],
 )
-def test_repository_examples(mode, second_delta, second_euclidean):
+def test_repository_examples(mode, expected_intervals, tmp_path):
+    """用静态分析 CLI 原样读取随附配置，验证实测轨迹的静止段。"""
     root = Path(__file__).resolve().parents[1] / "examples" / "static_analysis"
-    config = Config(
-        **yaml.safe_load((root / f"{mode}.yaml").read_text(encoding="utf-8")),
-        closure=True,
+    config = root / f"{mode}.yaml"
+    report = tmp_path / "report.json"
+    args = static_parser.parser().parse_args(
+        [
+            "tum",
+            str(root / "trajectory.tum"),
+            "--config",
+            str(config),
+            "--closure",
+            "--save_json",
+            str(report),
+        ]
+    )
+    static.run(entry_points.merge_config(args, static.CONFIG_FORMAT))
+    result = json.loads(report.read_text(encoding="utf-8"))
+    assert result["config"]["reference_mode"] == mode
+    assert len(result["segments"]) == len(expected_intervals)
+    for segment, interval in zip(result["segments"], expected_intervals):
+        assert (segment["start_relative"], segment["end_relative"]) == (
+            pytest.approx(interval, abs=0.001)
+        )
+    assert len(result["distances"]) == 1
+    assert result["distances"][0]["euclidean_distance"] > 0
+    assert result["closure"]["euclidean_distance"] == pytest.approx(
+        result["distances"][0]["euclidean_distance"]
+    )
+
+
+@pytest.mark.parametrize(
+    "timestamps,interval,expected_indices",
+    [
+        ([1700000000.0, 1700000000.1, 1700000000.2], (0.1, 0.2), (1, 3)),
+        ([1700000000.0, 1700000000.1], (0, 0.1), (0, 2)),
+        ([0.1, 0.3, 0.4], (0.2, 0.3), (1, 3)),
+        ([1700000000.0, 1700000000.1, 1700000000.2], (0.05, 0.15), (1, 2)),
+    ],
+)
+def test_manual_interval_includes_boundary_frames(
+    timestamps, interval, expected_indices
+):
+    """验证浮点舍入不会漏掉闭区间端点或越过轨迹时长校验。"""
+    trajectory = PoseTrajectory3D(
+        np.zeros((len(timestamps), 3)),
+        np.tile([1, 0, 0, 0], (len(timestamps), 1)),
+        timestamps,
     )
     result = analyze_static(
-        file_interface.read_tum_trajectory_file(root / "trajectory.tum"),
-        config,
+        trajectory, manual_intervals={"static_0": interval}
     )
-    assert len(result.segments) == 3
-    assert result.distances[0]["delta_xyz"] == pytest.approx([100, 0, 0])
-    assert result.distances[0]["euclidean_distance"] == pytest.approx(100)
-    assert result.distances[1]["delta_xyz"] == pytest.approx(second_delta)
-    assert result.distances[1]["euclidean_distance"] == pytest.approx(
-        second_euclidean
+    (segment,) = result.segments
+    assert (segment["start_index"], segment["stop_index"]) == expected_indices
+
+
+def test_manual_intervals_use_mean_pose():
+    """闭区间内的每帧参与平移和旋转均值，单帧区间也可使用。"""
+    theta = np.deg2rad([0, 10, 20, 40]) / 2
+    trajectory = PoseTrajectory3D(
+        np.column_stack(([0, 1, 3, 10], np.zeros((4, 2)))),
+        np.column_stack((np.cos(theta), np.zeros((4, 2)), np.sin(theta))),
+        [100, 100.5, 101, 102],
     )
+    result = analyze_static(
+        trajectory,
+        Config(unit="m", closure=True),
+        manual_intervals={"static_0": (1.5, 2), "static_1": (0.5, 1)},
+    )
+    assert [s["sample_count"] for s in result.segments] == [2, 1]
+    assert result.segments[0]["position"] == pytest.approx([2, 0, 0])
     assert result.closure is not None
-    assert result.closure["euclidean_distance"] == pytest.approx(0)
+    assert result.closure["euclidean_distance"] == pytest.approx(8)
+    assert result.closure["rotation_angle_deg"] == pytest.approx(25)
+
+
+@pytest.mark.parametrize(
+    "section, message",
+    [
+        ([], "mapping"),
+        ({"enable": "false"}, "boolean"),
+        ({"start_time": 0}, "end_time is required"),
+        ({"start_time": True, "end_time": 1}, "finite times"),
+        ({"start_time": 0, "end_time": float("inf")}, "finite times"),
+        ({"start_time": 0, "end_time": 10**400}, "finite times"),
+        ({"start_time": 1, "end_time": 1}, "finite times"),
+        ({"start_time": -1, "end_time": 1}, "finite times"),
+        ({"start_time": 0, "end_time": 3}, "trajectory duration"),
+        ({"start_time": 0.1, "end_time": 0.2}, "no trajectory poses"),
+    ],
+)
+def test_cli_rejects_invalid_manual_interval(tmp_path, section, message):
+    """手动区间无效时报告对应配置项，阻止自动回退。"""
+    trajectory = tmp_path / "trajectory.tum"
+    file_interface.write_tum_trajectory_file(trajectory, stops([[0, 0, 0]]))
+    config = tmp_path / "invalid.yaml"
+    config.write_text(yaml.safe_dump({"static_4": section}), encoding="utf-8")
+    args = static_parser.parser().parse_args(
+        ["tum", str(trajectory), "--config", str(config)]
+    )
+    with pytest.raises(StaticAnalysisException, match=f"static_4.*{message}"):
+        static.run(entry_points.merge_config(args, static.CONFIG_FORMAT))
 
 
 @pytest.mark.parametrize("suffix", ["yaml", "yml"])
@@ -398,7 +488,7 @@ def test_plot_report_chinese_and_distinct_labels(tmp_path: Path, monkeypatch):
 
     collection = plot_report(trajs, results)
     try:
-        assert len(collection.figures) == 6
+        assert len(collection.figures) == 8
         titles = [
             fig._suptitle.get_text() for fig in collection.figures.values()
         ]
@@ -407,7 +497,12 @@ def test_plot_report_chinese_and_distinct_labels(tmp_path: Path, monkeypatch):
         assert all(
             any(
                 k in t
-                for k in ("静止区间检测", "静止段稳定性", "停靠点间距离与旋转")
+                for k in (
+                    "三维估计轨迹",
+                    "静止区间检测",
+                    "静止段稳定性",
+                    "停靠点间距离与旋转",
+                )
             )
             for t in titles
         )
@@ -429,15 +524,17 @@ def test_plot_report_chinese_and_distinct_labels(tmp_path: Path, monkeypatch):
             for k, fig in collection.figures.items()
             if k.endswith("_distances")
         )
-        assert first_distances.axes[-1].get_xlabel() == "停靠点对"
-        euc_line = next(
-            line
-            for line in first_distances.axes[0].lines
-            if line.get_label() == "欧氏距离"
-        )
+        distance_axis, rotation_axis = first_distances.axes
+        assert rotation_axis.get_xlabel() == "停靠点对"
+        assert rotation_axis.get_ylabel() == "旋转角 (deg)"
+        assert distance_axis.get_ylabel() == "欧氏距离 (mm)"
+        (euc_line,) = distance_axis.lines
+        assert euc_line.get_label() == "欧氏距离"
         assert euc_line.get_color() == "gold"
-        assert len(first_distances.axes[0].texts) == 8
-        assert len(first_distances.axes[1].texts) == 2
+        assert [label.get_text() for label in distance_axis.texts] == [
+            "100.00",
+            "100.00",
+        ]
         out_pdf = tmp_path / "out.pdf"
         collection.export(str(out_pdf), confirm_overwrite=False)
         assert out_pdf.stat().st_size > 1000
@@ -451,6 +548,69 @@ def test_plot_report_chinese_and_distinct_labels(tmp_path: Path, monkeypatch):
         assert any(t.startswith("测试B - ") for t in titles)
     finally:
         custom.close()
+
+
+@pytest.mark.parametrize("unit, scale", [("m", 1), ("mm", 1000)])
+@pytest.mark.parametrize("manual", [False, True])
+def test_plot_trajectory_3d_static_means(monkeypatch, unit, scale, manual):
+    """三维图使用报告均值，重合标记保留坐标并按大小叠画。"""
+    from evo.tools.static_report import plot_report
+
+    monkeypatch.setitem(SETTINGS, "plot_backend", "Agg")
+    monkeypatch.setitem(SETTINGS, "plot_show_legend", True)
+    trajectory = stops([[1, -2, 3], [1.2, -2.3, 3.4], [1, -2, 3]])
+    trajectory.positions_xyz[6] += [0.0003, 0.0006, 0.0009]
+    intervals = {"static_2": (6, 8), "static_0": (0, 2), "static_1": (3, 4)}
+    result = analyze_static(
+        trajectory,
+        Config(unit=unit),
+        manual_intervals=intervals if manual else None,
+    )
+    collection = plot_report(trajectory, result)
+    try:
+        (ax,) = collection.figures["trajectory_3d"].axes
+        assert ax.name == "3d"
+        assert [ax.get_xlabel(), ax.get_ylabel(), ax.get_zlabel()] == [
+            f"${axis}$ ({unit})" for axis in "xyz"
+        ]
+        if unit == "mm":
+            assert ax.xaxis.get_major_formatter()(1.0) == "1000"
+        line, *markers = ax.lines
+        np.testing.assert_allclose(
+            np.column_stack(line.get_data_3d()), trajectory.positions_xyz
+        )
+        assert len(markers) == 3
+        assert [marker.get_marker() for marker in markers] == ["o", "o", "X"]
+        assert len({marker.get_color() for marker in markers}) == 3
+        plotted = [np.ravel(marker.get_data_3d()) for marker in markers]
+        np.testing.assert_allclose(
+            np.array(plotted) * scale, [s["position"] for s in result.segments]
+        )
+        np.testing.assert_array_equal(plotted[0], plotted[-1])
+        assert markers[0].get_markersize() > markers[-1].get_markersize()
+        assert [text.get_text() for text in ax.get_legend().get_texts()] == [
+            "估计轨迹",
+            "停靠点 0",
+            "停靠点 1",
+            "停靠点 2",
+        ]
+    finally:
+        collection.close()
+
+
+def test_plot_trajectory_3d_single_stop(monkeypatch):
+    """仅识别出一个静止段时，也用 X 标记最后一个静止点。"""
+    from evo.tools.static_report import plot_report
+
+    monkeypatch.setitem(SETTINGS, "plot_backend", "Agg")
+    trajectory = stops([[1, 2, 3]])
+    collection = plot_report(trajectory, analyze_static(trajectory))
+    try:
+        (ax,) = collection.figures["trajectory_3d"].axes
+        assert len(ax.lines) == 2
+        assert ax.lines[1].get_marker() == "X"
+    finally:
+        collection.close()
 
 
 @pytest.mark.parametrize("closure", [False, True])
@@ -493,21 +653,18 @@ def test_plot_report_preserves_distances_with_optional_closure(
         assert [
             tick.get_text() for tick in rotation_axis.get_xticklabels()
         ] == expected_labels
-        np.testing.assert_allclose(
-            [line.get_ydata() for line in distance_axis.lines[:3]],
-            np.array(expected_xyz).T,
-        )
-        euclidean = next(
-            line
-            for line in distance_axis.lines
-            if line.get_label() == "欧氏距离"
-        )
-        np.testing.assert_allclose(
-            euclidean.get_ydata(), np.linalg.norm(expected_xyz, axis=1)
-        )
-        np.testing.assert_allclose(
-            rotation_axis.lines[0].get_ydata(), expected_angles
-        )
+        (euclidean,) = distance_axis.lines
+        assert euclidean.get_label() == "欧氏距离"
+        expected_distances = np.linalg.norm(expected_xyz, axis=1)
+        np.testing.assert_allclose(euclidean.get_ydata(), expected_distances)
+        assert [label.get_text() for label in distance_axis.texts] == [
+            f"{distance:.2f}" for distance in expected_distances
+        ]
+        (rotation,) = rotation_axis.lines
+        np.testing.assert_allclose(rotation.get_ydata(), expected_angles)
+        assert [label.get_text() for label in rotation_axis.texts] == [
+            f"{angle:.2f}°" for angle in expected_angles
+        ]
         assert len(result.distances) == 2
     finally:
         collection.close()

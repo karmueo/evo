@@ -1,10 +1,13 @@
-"""Static trajectory evaluation in the trajectory's world coordinate axes.
+"""在轨迹的世界坐标系中评估静止段平均位姿、抖动及段间距离。
 
 This file is part of evo (github.com/MichaelGrupp/evo).
 Copyright evo authors. Licensed under the GNU GPL v3 or later.
 """
 
+import math
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
+from sys import float_info
 from typing import Any
 
 import numpy as np
@@ -166,18 +169,68 @@ def detect_static_intervals(
     ]
 
 
-def analyze_static(
-    traj: PoseTrajectory3D, config: StaticAnalysisConfig | None = None
-) -> StaticAnalysisResult:
-    """Evaluate automatically detected static stops using equal sample weights.
+def _select_manual_intervals(
+    traj: PoseTrajectory3D,
+    manual_intervals: Mapping[str, tuple[float, float]],
+) -> list[StaticInterval]:
+    """将相对首帧的闭区间转换为采样索引，无效区间会抛出异常。"""
+    # 用轨迹原始时间戳比较，避免将大时间戳相减后的误差带入搜索。
+    times = traj.timestamps
+    first_time = float(times[0])
+    last_time = float(times[-1])
+    intervals: dict[str, StaticInterval] = {}
+    for name, (start_time, end_time) in manual_intervals.items():
+        if any(
+            isinstance(value, bool) or not isinstance(value, (int, float))
+            for value in (start_time, end_time)
+        ) or not (0 <= start_time < end_time <= float_info.max):
+            raise StaticAnalysisException(
+                f"{name} requires finite times and 0 <= start_time < end_time"
+            )
+        start_timestamp = first_time + start_time
+        end_timestamp = first_time + end_time
+        # 端点换算允许一个浮点间距的误差，时长校验使用同一精度。
+        if not math.isfinite(end_timestamp) or end_timestamp > math.nextafter(
+            last_time, math.inf
+        ):
+            raise StaticAnalysisException(
+                f"{name} exceeds the trajectory duration "
+                f"({last_time - first_time:g} s)"
+            )
+        start_bound = math.nextafter(start_timestamp, -math.inf)
+        end_bound = math.nextafter(end_timestamp, math.inf)
+        start = int(np.searchsorted(times, start_bound, side="left"))
+        stop = int(np.searchsorted(times, end_bound, side="right"))
+        if start == stop:
+            raise StaticAnalysisException(
+                f"{name} contains no trajectory poses"
+            )
+        intervals[name] = StaticInterval(start, stop)
+    # 用配置时间排序，即使不同区间的起点落在同一个采样间隙。
+    order = sorted(manual_intervals, key=manual_intervals.__getitem__)
+    return [intervals[name] for name in order]
 
-    Positions internally remain in meters; report positions and inter-stop
-    distances use config.unit. No coordinate alignment or scaling is applied.
+
+def analyze_static(
+    traj: PoseTrajectory3D,
+    config: StaticAnalysisConfig | None = None,
+    *,
+    manual_intervals: Mapping[str, tuple[float, float]] | None = None,
+) -> StaticAnalysisResult:
+    """对手动指定或自动检测的静止段等权求平均位姿并返回统计结果。
+
+    traj 为带时间戳的轨迹，config 控制检测与输出单位。
+    manual_intervals 将区间名称映射到相对首帧的起止秒数，空映射使用自动检测。
+    轨迹、配置或区间无效时抛出 StaticAnalysisException。
     """
     config = config or StaticAnalysisConfig()
     config.validate()
     _validate_trajectory(traj)
-    intervals = detect_static_intervals(traj, config)
+    intervals = (
+        _select_manual_intervals(traj, manual_intervals)
+        if manual_intervals
+        else detect_static_intervals(traj, config)
+    )
     if not intervals:
         raise StaticAnalysisException(
             "No static intervals found; adjust detection thresholds"

@@ -1,17 +1,16 @@
-"""Argument parser for static trajectory evaluation (GPL v3 or later)."""
+"""定义单条轨迹静态分析的命令行参数（GPL v3 或更高版本）。"""
 
 import argparse
 
 
 def parser() -> argparse.ArgumentParser:
+    """返回静态分析命令的参数解析器。"""
     main = argparse.ArgumentParser(description="Static trajectory evaluation")
     sub = main.add_subparsers(dest="subcommand", required=True)
     tum = sub.add_parser("tum", help="TUM trajectory (positions in meters)")
     tum.add_argument(
-        "trajectories",
-        nargs="+",
-        metavar="trajectory",
-        help="one or more estimated TUM trajectory files",
+        "trajectory",
+        help="one estimated TUM trajectory file",
     )
     tum.add_argument(
         "--reference_mode", choices=("origin", "consecutive"), default="origin"
@@ -25,7 +24,7 @@ def parser() -> argparse.ArgumentParser:
     tum.add_argument(
         "--closure",
         action="store_true",
-        help="evaluate distance between first and last detected stops",
+        help="evaluate distance between first and last stops",
     )
     for name, value, help_text in (
         ("window", 0.5, "detection window duration (s)"),
@@ -48,12 +47,13 @@ def parser() -> argparse.ArgumentParser:
     tum.add_argument(
         "-c",
         "--config",
-        help="YAML parameters (override command line arguments)",
+        help="YAML overrides for CLI options and optional static_N intervals",
     )
     tum.add_argument(
         "--labels",
-        nargs="+",
-        help="optional display labels for input trajectories in plots",
+        nargs=1,
+        metavar="label",
+        help="optional display label for the trajectory in plots",
     )
     for name in ("save_json", "save_csv", "save_plot", "logfile"):
         tum.add_argument("--" + name, help="output file path")
