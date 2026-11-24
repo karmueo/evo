@@ -55,20 +55,34 @@ logger = logging.getLogger(__name__)
 ListOrArray = typing.Sequence[float] | np.ndarray
 
 
-def apply_settings(settings: SettingsContainer = SETTINGS):
-    """
-    Configure matplotlib and seaborn according to package settings.
-    """
-    # Don't override the backend in interactive IPython/Jupyter sessions,
-    # where the user configures it via %matplotlib magic.
+def apply_settings(settings: SettingsContainer = SETTINGS) -> None:
+    """应用 Matplotlib 和 Seaborn 配置，后端不可用时用 Agg 渲染。"""
     try:
         shell = get_ipython().__class__.__name__  # type: ignore
-        if shell in ("ZMQInteractiveShell", "TerminalInteractiveShell"):
-            logger.debug("IPython/Jupyter detected, skipping mpl.use().")
-        else:
-            mpl.use(settings.plot_backend)
     except NameError:
-        mpl.use(settings.plot_backend)
+        shell = ""
+
+    # IPython 和 Jupyter 由用户通过 %matplotlib 选择后端。
+    if shell in ("ZMQInteractiveShell", "TerminalInteractiveShell"):
+        logger.debug("IPython/Jupyter detected, keeping its backend.")
+    else:
+        try:
+            if plt.get_fignums():
+                # 旧版 Matplotlib 直接切换到同名后端也会关闭现有图表。
+                mpl.use(settings.plot_backend)
+            else:
+                # mpl.use() 会跳过同名配置，即使后端尚未加载。
+                backend = mpl.rcsetup.validate_backend(settings.plot_backend)
+                plt.switch_backend(backend)
+                mpl.rcParams["backend_fallback"] = False
+        except ImportError as exc:
+            mpl.use("Agg")
+            logger.warning(
+                "Matplotlib backend %r is unavailable (%s). "
+                "Using Agg for file export.",
+                settings.plot_backend,
+                exc,
+            )
 
     if settings.plot_seaborn_enabled:
         # TODO: 'color_codes=False' to work around this bug:
@@ -156,8 +170,9 @@ class PlotCollection:
             canvas.mpl_connect("motion_notify_event", axes._on_move)
 
     def tabbed_qt_window(self) -> None:
+        """在 Qt 的标签页中显示图表，阻塞至窗口关闭。"""
         pyqt_5_compat = False
-        if SETTINGS.plot_backend.lower() == "qt5agg":
+        if mpl.get_backend().lower() == "qt5agg":
             logger.warning(
                 "PyQt5 support is deprecated and will be removed "
                 "in a later evo version. Please install PyQt6 "
@@ -240,15 +255,20 @@ class PlotCollection:
         self.root_window.destroy()
 
     def show(self) -> None:
-        if len(self.figures.keys()) == 0:
+        """显示图表，交互模式由 Matplotlib 管理，Agg 下记录警告。"""
+        if not self.figures:
             return
-        if not SETTINGS.plot_split:
-            if "qt" in SETTINGS.plot_backend.lower():
-                self.tabbed_qt_window()
-            elif SETTINGS.plot_backend.lower() == "tkagg":
-                self.tabbed_tk_window()
-            else:
-                plt.show()
+        backend = mpl.get_backend().lower()
+        if backend == "agg":
+            logger.warning("The Agg backend cannot open a plot window.")
+            return
+
+        # 交互模式沿用 Matplotlib 的事件循环。
+        use_tabs = not (SETTINGS.plot_split or plt.isinteractive())
+        if use_tabs and "qt" in backend:
+            self.tabbed_qt_window()
+        elif use_tabs and backend == "tkagg":
+            self.tabbed_tk_window()
         else:
             plt.show()
 

@@ -2,6 +2,9 @@
 
 import csv
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -273,6 +276,63 @@ def test_cli_single_trajectory_exports_and_plots(
         "report.pdf" if extension == "pdf" else "report_trajectory_3d.png"
     )
     assert (tmp_path / plot_file).stat().st_size > 1000
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux headless check")
+@pytest.mark.parametrize("display_plot", [False, True])
+@pytest.mark.parametrize("backend_preconfigured", [False, True])
+def test_cli_exports_pdf_when_qt_is_unavailable(
+    tmp_path: Path, display_plot: bool, backend_preconfigured: bool
+) -> None:
+    """验证无图形会话时，包含预设 Qt 后端的配置也能导出 PDF。"""
+    trajectory = tmp_path / "trajectory.tum"
+    file_interface.write_tum_trajectory_file(
+        trajectory, stops([[0, 0, 0], [0.1, 0, 0]])
+    )
+    config = tmp_path / "experiment.yaml"
+    config.write_text(
+        "plot_backend: qtagg\nplot_split: false\nplot_usetex: false\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "report.pdf"
+    # 在隔离了桌面环境的新进程中加载绘图后端。
+    env = os.environ.copy()
+    for variable in (
+        "DISPLAY",
+        "WAYLAND_DISPLAY",
+        "MPLBACKEND",
+        "MATPLOTLIBRC",
+    ):
+        env.pop(variable, None)
+    mpl_config_dir = tmp_path / "matplotlib"
+    if backend_preconfigured:
+        mpl_config_dir.mkdir()
+        (mpl_config_dir / "matplotlibrc").write_text(
+            "backend: qtagg\nbackend_fallback: False\n", encoding="utf-8"
+        )
+    env["MPLCONFIGDIR"] = str(mpl_config_dir)
+    command = [
+        sys.executable,
+        "-c",
+        "from evo.cli.entry_points import static; static()",
+        "tum",
+        str(trajectory),
+        "--config",
+        str(config),
+        "--save_plot",
+        str(output),
+    ]
+    if display_plot:
+        command.append("--plot")
+    completed = subprocess.run(
+        command, env=env, capture_output=True, text=True, timeout=30
+    )
+    logs = completed.stdout + completed.stderr
+    assert completed.returncode == 0, logs
+    assert "Using Agg for file export." in logs
+    if display_plot:
+        assert "cannot open a plot window" in logs
+    assert output.read_bytes().startswith(b"%PDF-")
 
 
 def test_identical_nonidentity_rotation_and_half_turn():
