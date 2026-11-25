@@ -239,12 +239,13 @@ evo_ape tum \
 ```bash
 # 计算并保存 RGB-D SLAM 轨迹的绝对位姿误差
 evo_ape tum \
-  test/data/freiburg1_xyz-groundtruth.txt \
-  test/data/freiburg1_xyz-rgbdslam.txt \
+  groundtruth.txt \
+  rgbdslam.txt \
   -va \
-  --plot \
-  --plot_mode xz \
-  --save_results results/RGBDSLAM.zip
+  --plot_mode xyz \
+  --save_plot output/result.pdf
+# --plot
+# --save_results results/RGBDSLAM.zip
 ```
 
 <a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_S-PTAM_raw.png" target="_blank">
