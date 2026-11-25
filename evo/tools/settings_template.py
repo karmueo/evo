@@ -177,7 +177,7 @@ DEFAULT_SETTINGS_DICT_DOC = {
     "plot_start_end_markers": (
         True,
         "Mark the start and end of a trajectory with a symbol.\n"
-        "Start is marked with a triangle, end with a square."
+        "Start is marked with an open circle, end with a cross."
     ),
     "plot_texsystem": (
         "pdflatex",

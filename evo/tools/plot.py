@@ -40,6 +40,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.backend_bases import FigureCanvasBase
 from matplotlib.collections import LineCollection
+from matplotlib.markers import MarkerStyle
+from matplotlib.patheffects import withStroke
 from matplotlib.ticker import FuncFormatter
 from matplotlib.transforms import Affine2D, Bbox
 
@@ -433,14 +435,14 @@ def add_start_end_markers(
     ax: Axes,
     plot_mode: PlotMode,
     traj: trajectory.PosePath3D,
-    start_symbol: str = "^",
+    start_symbol: str | MarkerStyle = MarkerStyle("o", fillstyle="none"),
     start_color="black",
-    end_symbol: str = "s",
+    end_symbol: str = "x",
     end_color="black",
     alpha: float = 1.0,
     traj_name: str | None = None,
-):
-    """在指定投影轴上标注轨迹首尾，默认使用三角形和方块。
+) -> None:
+    """在轨迹上方标注首尾，默认用带白色描边的空心圆和叉。
 
     ax 和 plot_mode 决定绘图轴和坐标投影，traj 提供端点坐标。
     start_symbol、end_symbol 和对应的颜色参数控制标记外观，
@@ -459,21 +461,23 @@ def add_start_end_markers(
         end_coords.append(end[z_idx])
     start_label = f"Start of {traj_name}" if traj_name else None
     end_label = f"End of {traj_name}" if traj_name else None
-    # TODO: mypy doesn't deal well with * unpack here for some reason.
-    ax.scatter(
-        *start_coords,
-        marker=start_symbol,
-        color=start_color,
-        alpha=alpha,
-        label=start_label,
-    )  # type: ignore[misc]
-    ax.scatter(
-        *end_coords,
-        marker=end_symbol,
-        color=end_color,
-        alpha=alpha,
-        label=end_label,
-    )  # type: ignore[misc]
+    # 三维轴会按深度重排散点，独立的线对象可将端点绘制在轨迹上方。
+    for coords, symbol, color, label in (
+        (start_coords, start_symbol, start_color, start_label),
+        (end_coords, end_symbol, end_color, end_label),
+    ):
+        ax.plot(
+            *coords,
+            linestyle="none",
+            marker=symbol,
+            markersize=12,
+            markeredgewidth=2,
+            color=color,
+            alpha=alpha,
+            label=label,
+            zorder=20,
+            path_effects=[withStroke(linewidth=4, foreground="white")],
+        )
 
 
 def traj(
