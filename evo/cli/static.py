@@ -71,12 +71,14 @@ def run(args: argparse.Namespace) -> None:
         from evo.tools.static_report import plot_report
 
         plots = plot_report(traj, result, labels=labels)
+        keep_open = False
         try:
             if args.save_plot:
                 plots.export(
                     args.save_plot, confirm_overwrite=not args.no_warnings
                 )
             if args.plot:
-                plots.show()
+                keep_open = plots.show()
         finally:
-            plots.close()
+            if not keep_open:
+                plots.close()

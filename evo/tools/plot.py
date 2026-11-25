@@ -254,23 +254,30 @@ class PlotCollection:
         self.root_window.mainloop()
         self.root_window.destroy()
 
-    def show(self) -> None:
-        """显示图表，交互模式由 Matplotlib 管理，Agg 下记录警告。"""
+    def show(self) -> bool:
+        """显示图表，返回调用方是否需要保留交互式 Qt 或 TkAgg 图窗。
+
+        这两类图窗在交互模式下由 Matplotlib 管理。Agg 无法显示图窗时记录警告。
+        """
         if not self.figures:
-            return
+            return False
         backend = mpl.get_backend().lower()
         if backend == "agg":
             logger.warning("The Agg backend cannot open a plot window.")
-            return
+            return False
 
         # 交互模式沿用 Matplotlib 的事件循环。
-        use_tabs = not (SETTINGS.plot_split or plt.isinteractive())
-        if use_tabs and "qt" in backend:
+        interactive = plt.isinteractive()
+        use_tabs = not (SETTINGS.plot_split or interactive)
+        is_qt = "qt" in backend
+        is_tkagg = backend == "tkagg"
+        if use_tabs and is_qt:
             self.tabbed_qt_window()
-        elif use_tabs and backend == "tkagg":
+        elif use_tabs and is_tkagg:
             self.tabbed_tk_window()
         else:
             plt.show()
+        return interactive and (is_qt or is_tkagg)
 
     def close(self) -> None:
         for name, fig in self.figures.items():

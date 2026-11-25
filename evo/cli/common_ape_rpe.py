@@ -272,13 +272,17 @@ def plot_result(
     plot_collection = plot.PlotCollection(result.info["title"])
     plot_collection.add_figure("raw", fig1)
     plot_collection.add_figure("map", fig2)
-    if args.plot:
-        plot_collection.show()
-    if args.save_plot:
-        plot_collection.export(
-            args.save_plot, confirm_overwrite=not args.no_warnings
-        )
-    plot_collection.close()
+    keep_open = False
+    try:
+        if args.plot:
+            keep_open = plot_collection.show()
+        if args.save_plot:
+            plot_collection.export(
+                args.save_plot, confirm_overwrite=not args.no_warnings
+            )
+    finally:
+        if not keep_open:
+            plot_collection.close()
 
 
 def send_rerun_blueprint(
