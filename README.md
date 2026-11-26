@@ -1,20 +1,18 @@
 # evo
 
-[![CI](https://github.com/MichaelGrupp/evo/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/MichaelGrupp/evo/actions/workflows/ci.yml)
+evo 是用于处理、评估和比较里程计及 SLAM 轨迹的 Python 软件包，支持 Linux、macOS 和 Windows。需要 Python 3.11 或更高版本；以下安装命令应在合适的隔离环境中运行，源码安装和示例从仓库根目录开始。必需依赖及可选组件见 [pyproject.toml](pyproject.toml)。支持 TUM、KITTI、EuRoC MAV 及 ROS/ROS2 bag 等格式。
 
-evo 是用于处理、评估和比较里程计及 SLAM 轨迹的 Python 软件包，支持 Linux、macOS 和 Windows。需要 Python 3.11 或更高版本；以下安装命令应在合适的隔离环境中运行，源码安装和示例从仓库根目录开始。必需依赖及可选组件见 [pyproject.toml](pyproject.toml)。支持 TUM、KITTI、EuRoC MAV 及 ROS/ROS2 bag 等格式，详见[格式说明](https://github.com/MichaelGrupp/evo/wiki/Formats)。读取 bag 的 `/tf` 话题需要 ROS；其他受支持的话题可通过依赖 rosbags 读取。
-
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" alt="evo" height="175" border="5" />
+<a href="doc/assets/ape_demo_ORB_map.png" target="_blank">
+  <img src="doc/assets/ape_demo_ORB_map.png" alt="evo" height="175" border="5" />
 </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/markers.png" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/markers.png" alt="evo" height="175" border="5" />
+<a href="doc/assets/markers.png" target="_blank">
+  <img src="doc/assets/markers.png" alt="evo" height="175" border="5" />
 </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/map_tile_osm.png" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/map_tile_osm.png" alt="evo" height="175" border="5" />
+<a href="doc/assets/map_tile_osm.png" target="_blank">
+  <img src="doc/assets/map_tile_osm.png" alt="evo" height="175" border="5" />
 </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" alt="evo" height="175" border="5" />
+<a href="doc/assets/traj_rerun.gif" target="_blank">
+  <img src="doc/assets/traj_rerun.gif" alt="evo" height="175" border="5" />
 </a>
 
 <a id="为什么选择-evo"></a>
@@ -101,11 +99,11 @@ uv pip install \
 
 参数说明同上方 `uv pip install`；请在安装 evo 的同一虚拟环境中执行。安装后可在支持的 evo 命令中添加 `--rerun`，详见 [Rerun 集成](https://github.com/MichaelGrupp/evo/wiki/Rerun-integration)。
 
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_rerun.gif" alt="evo" width="350" border="5" />
+<a href="doc/assets/traj_rerun.gif" target="_blank">
+  <img src="doc/assets/traj_rerun.gif" alt="evo" width="350" border="5" />
 </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_rerun.gif" target="_blank">
-  <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_rerun.gif" alt="evo" width="350" border="5" />
+<a href="doc/assets/ape_rerun.gif" target="_blank">
+  <img src="doc/assets/ape_rerun.gif" alt="evo" width="350" border="5" />
 </a>
 
 ## 命令行界面
@@ -175,11 +173,11 @@ evo_traj tum \
 | `-c`, `--config` | 加载优先于命令行参数的配置 | 输入文件 | 未设置；JSON |
 | `-h`, `--help` | 显示帮助 | 行为控制项 | 默认关闭 |
 
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_demo.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_demo.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/traj_demo.png" target="_blank">
+    <img src="doc/assets/traj_demo.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_demo_xyz.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/traj_demo_xyz.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/traj_demo_xyz.png" target="_blank">
+    <img src="doc/assets/traj_demo_xyz.png" alt="evo" height="200" border="5" />
   </a>
 
 ### 2. 计算轨迹评估指标
@@ -229,11 +227,11 @@ evo_ape tum \
 | `--save_results` | 保存评估结果 | 输出文件 | 未设置；ZIP 路径 |
 | `--no_warnings`, `-v`, `--verbose`, `--silent`, `--debug`, `-c`, `--config`, `-h`, `--help` | 控制输出、配置和帮助 | 行为控制项、输入文件 | 默认及条件见上方 `evo_traj` 表 |
 
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_raw.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_raw.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/ape_demo_ORB_raw.png" target="_blank">
+    <img src="doc/assets/ape_demo_ORB_raw.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_ORB_map.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/ape_demo_ORB_map.png" target="_blank">
+    <img src="doc/assets/ape_demo_ORB_map.png" alt="evo" height="200" border="5" />
   </a>
 
 ```bash
@@ -248,11 +246,11 @@ evo_ape tum \
 # --save_results results/RGBDSLAM.zip
 ```
 
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_S-PTAM_raw.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_S-PTAM_raw.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/ape_demo_S-PTAM_raw.png" target="_blank">
+    <img src="doc/assets/ape_demo_S-PTAM_raw.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_S-PTAM_map.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/ape_demo_S-PTAM_map.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/ape_demo_S-PTAM_map.png" target="_blank">
+    <img src="doc/assets/ape_demo_S-PTAM_map.png" alt="evo" height="200" border="5" />
   </a>
 
 ### 3. 处理多个评估结果
@@ -279,20 +277,20 @@ evo_res \
 | `--rerun`, `--rerun_rec_id` | 发送可视化数据及指定记录 ID | 行为控制项、输入值 | 默认关闭；ID 未设置 |
 | `--no_warnings`, `-v`, `--verbose`, `--silent`, `--debug`, `-c`, `--config`, `-h`, `--help` | 控制输出、配置和帮助 | 行为控制项、输入文件 | 默认及条件见上方 `evo_traj` 表 |
 
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_raw.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_raw.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/res_raw.png" target="_blank">
+    <img src="doc/assets/res_raw.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_dist.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_dist.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/res_dist.png" target="_blank">
+    <img src="doc/assets/res_dist.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_stats.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_stats.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/res_stats.png" target="_blank">
+    <img src="doc/assets/res_stats.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_box.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_box.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/res_box.png" target="_blank">
+    <img src="doc/assets/res_box.png" alt="evo" height="200" border="5" />
   </a>
-<a href="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_violin.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/MichaelGrupp/evo/master/doc/assets/res_violin.png" alt="evo" height="200" border="5" />
+<a href="doc/assets/res_violin.png" target="_blank">
+    <img src="doc/assets/res_violin.png" alt="evo" height="200" border="5" />
   </a>
 
 ### 4. 轨迹静态分析
@@ -393,32 +391,3 @@ print(report.to_dict())
 | `analyze_static(...)` 的 `manual_intervals` | 按名称传入相对时间区间 | 关键字参数，如 `{"static_0": (0.0, 2.0)}` | 默认 `None`，使用自动检测 |
 | 无（`report.to_dict()`） | 无需配置 | 输出字典 | 不适用；包含配置、数据源、静止段、段间距离、可选首尾距离和汇总 |
 | `print(...)` 的位置参数 | 提供要显示的报告字典 | 输入值；输出到标准输出 | 示例显式传入 `report.to_dict()`，不写报告文件 |
-
-## IPython / Jupyter 资源
-
-可打开 `notebooks/metrics_tutorial.ipynb`；有关环境准备见 [Jupyter 说明](doc/jupyter_notebook.md)。安装 IPython 后可使用 `evo_ipython` 启动 evo 配置的 shell。
-
-## 社区贡献的实用工具
-
-`contrib/` 中的非官方脚本不随软件包发布，也不在持续集成中定期测试。
-
-## 遇到问题
-
-查看命令帮助、[Wiki](https://github.com/MichaelGrupp/evo/wiki) 和[已关闭议题](https://github.com/MichaelGrupp/evo/issues?q=is%3Aissue+is%3Aclosed)，或创建[新议题](https://github.com/MichaelGrupp/evo/issues)。
-
-## 参与贡献
-
-欢迎通过 pull request 贡献补丁。
-
-## 许可证
-
-[GPL-3.0 或更高版本](https://www.gnu.org/licenses/gpl-3.0.html)。研究中可引用本仓库或使用以下条目：
-
-```bibtex
-@misc{grupp2017evo,
-  title={evo: Python package for the evaluation of odometry and SLAM.},
-  author={Grupp, Michael},
-  howpublished={\url{https://github.com/MichaelGrupp/evo}},
-  year={2017}
-}
-```
